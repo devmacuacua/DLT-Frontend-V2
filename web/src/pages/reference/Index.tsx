@@ -895,7 +895,7 @@ const ReferenceList: React.FC = ({ resetModal }: any) => {
             const cellStatus = row.getCell("N");
             if (cellStatus.value === "Pendente") {
               cellStatus.font = { bold: true, color: { argb: "FF800000" } }; // Red color
-            } else if (cellStatus.value === "Atendido") {
+            } else if (cellStatus.value === "Atendida") {
               cellStatus.font = { bold: true, color: { argb: "004000" } }; // Green color
             } else {
               cellStatus.font = { bold: true };
