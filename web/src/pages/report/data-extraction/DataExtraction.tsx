@@ -23,6 +23,7 @@ import {
   countNewlyEnrolledAgywAndServices,
   getNewlyEnrolledAgywAndServicesSummary,
   countNewlyEnrolledAgywAndServicesSummary,
+  getNewlyEnrolledAgywAndServicesJsonGenerated,
 } from "@app/utils/report";
 import { Title as AppTitle } from "@app/components";
 import LoadingModal from "@app/components/modal/LoadingModal";
@@ -30,6 +31,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 const { Option } = Select;
 const { Title } = Typography;
+const created = moment().format("YYYYMMDD_hhmmss");
 
 const DataExtraction = () => {
   const [loggedUser, setLogguedUser] = useState<any>(undefined);
@@ -157,6 +159,7 @@ const DataExtraction = () => {
     } else {
       setDataLoading(true);
       if (extraOption == 1) {
+        downloadGeneratedExcelReport();
         generateXlsReport();
       } else if (extraOption == 2) {
         generateSummaryXlsReport();
@@ -167,6 +170,30 @@ const DataExtraction = () => {
     }
   };
 
+  const downloadGeneratedExcelReport = async () => {
+    try {
+      setDataLoading(true);
+      const response = await getNewlyEnrolledAgywAndServicesJsonGenerated(
+        districtsIds,
+        initialDate,
+        finalDate
+      );
+
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `DLT2.0_SUMARIO_NOVAS_RAMJ_ VULNERABILIDADES_E_SERVICOS_${created}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      setDataLoading(false);
+    } catch (error) {
+      console.error("Error downloading the Excel report", error);
+      }
+  }
+  
   const generateXlsReport = async () => {
     console.log("On Export XLS");
 
@@ -613,7 +640,7 @@ const DataExtraction = () => {
                   >
                     <Select
                       placeholder="Seleccione a Extração Que Pretende"
-                      onChange={onChangeExtraOption}
+                      onChange={(e) => setExtraOption(e)}
                     >
                       {extraOptions?.map((item) => (
                         <Option key={item.id}>{item.name}</Option>
