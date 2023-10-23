@@ -191,9 +191,9 @@ const DataExtraction = () => {
       setDataLoading(false);
     } catch (error) {
       console.error("Error downloading the Excel report", error);
-      }
-  }
-  
+    }
+  };
+
   const generateXlsReport = async () => {
     console.log("On Export XLS");
 
