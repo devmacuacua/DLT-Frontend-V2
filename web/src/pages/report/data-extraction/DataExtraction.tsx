@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useState } from "react";
+import React, { Fragment, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import {
   Button,
@@ -20,10 +20,7 @@ import dreams from "../../../assets/dreams.png";
 
 import {
   getNewlyEnrolledAgywAndServices,
-  countNewlyEnrolledAgywAndServices,
-  getNewlyEnrolledAgywAndServicesSummary,
-  countNewlyEnrolledAgywAndServicesSummary,
-  getNewlyEnrolledAgywAndServicesJsonGenerated,
+  // getNewlyEnrolledAgywAndServicesSummary,
 } from "@app/utils/report";
 import { Title as AppTitle } from "@app/components";
 import LoadingModal from "@app/components/modal/LoadingModal";
@@ -48,6 +45,9 @@ const DataExtraction = () => {
   const [extraOption, setExtraOption] = useState(0);
   const RequiredFieldMessage = "Obrigatório!";
   const pageSize = 1000;
+  const [data, setData] = useState<any>();
+  const fileRef = useRef();
+
   const districtsIds = selectedDistricts.map((district) => {
     return district.id;
   });
@@ -109,46 +109,29 @@ const DataExtraction = () => {
     }
   };
 
-  const getTotalNewlyEnrolledAgywAndServices = async () => {
-    const totalNewlyEnrolledAgywAndServices =
-      await countNewlyEnrolledAgywAndServices(
-        districtsIds,
-        initialDate,
-        finalDate
-      );
-    const lastPage = Math.ceil(totalNewlyEnrolledAgywAndServices[0] / pageSize);
-    setLastPage(lastPage);
-  };
+  // const handleGenerateXLSXReport = () => {
+  //   if (
+  //     selectedProvinces.length < 1 ||
+  //     selectedDistricts.length < 1 ||
+  //     initialDate === undefined ||
+  //     finalDate === undefined
+  //   ) {
+  //     toast.error("Por favor selecione os filtros para relatorio");
+  //   } else {
+  //     setDataLoading(true);
+  //     if (extraOption == 1) {
+  //       // downloadJsonReport();
+  //       generateXlsReport();
+  //     } else if (extraOption == 2) {
+  //       generateSummaryXlsReport();
+  //     } else {
+  //       setDataLoading(false);
+  //       toast.error("Por favor selecione o tipo de extração");
+  //     }
+  //   }
+  // };
 
-  const getTotalNewlyEnrolledAgywAndServicesSummary = async () => {
-    const totalNewlyEnrolledAgywAndServicesSummary =
-      await countNewlyEnrolledAgywAndServicesSummary(
-        districtsIds,
-        initialDate,
-        finalDate
-      );
-    const lastPageSummary = Math.ceil(
-      totalNewlyEnrolledAgywAndServicesSummary[0] / pageSize
-    );
-    setLastPageSummary(lastPageSummary);
-  };
-
-  const onChangeExtraOption = async (option) => {
-    setDataLoading(true);
-    setExtraOption(option);
-    if (option == 1) {
-      getTotalNewlyEnrolledAgywAndServices().then(() => setDataLoading(false));
-    } else if (option == 2) {
-      getTotalNewlyEnrolledAgywAndServicesSummary().then(() =>
-        setDataLoading(false)
-      );
-    } else {
-      toast.error("Por favor selecione o tipo de extração");
-      setDataLoading(false);
-    }
-  };
-
-  const handleGenerateXLSXReport = () => {
+  const downloadJsonReport = async () => {
     if (
       selectedProvinces.length < 1 ||
       selectedDistricts.length < 1 ||
@@ -157,40 +140,27 @@ const DataExtraction = () => {
     ) {
       toast.error("Por favor selecione os filtros para relatorio");
     } else {
-      setDataLoading(true);
-      if (extraOption == 1) {
-        downloadGeneratedExcelReport();
-        generateXlsReport();
-      } else if (extraOption == 2) {
-        generateSummaryXlsReport();
-      } else {
+      try {
+        setDataLoading(true);
+        const response = await getNewlyEnrolledAgywAndServices(
+          districtsIds,
+          initialDate,
+          finalDate
+        );
+
+        const blob = new Blob([response.data], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `DLT2.0_SUMARIO_NOVAS_RAMJ_ VULNERABILIDADES_E_SERVICOS_${created}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
         setDataLoading(false);
-        toast.error("Por favor selecione o tipo de extração");
+      } catch (error) {
+        console.error("Error downloading the Excel report", error);
       }
-    }
-  };
-
-  const downloadGeneratedExcelReport = async () => {
-    try {
-      setDataLoading(true);
-      const response = await getNewlyEnrolledAgywAndServicesJsonGenerated(
-        districtsIds,
-        initialDate,
-        finalDate
-      );
-
-      const blob = new Blob([response.data], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `DLT2.0_SUMARIO_NOVAS_RAMJ_ VULNERABILIDADES_E_SERVICOS_${created}.xlsx`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-      setDataLoading(false);
-    } catch (error) {
-      console.error("Error downloading the Excel report", error);
     }
   };
 
@@ -307,62 +277,51 @@ const DataExtraction = () => {
 
       let sequence = 1;
 
-      for (let i = 0; i < lastPage; i++) {
-        const responseData = await getNewlyEnrolledAgywAndServices(
-          districtsIds,
-          initialDate,
-          finalDate,
-          i,
-          pageSize
-        );
-        responseData.forEach((report) => {
-          const values = [
-            sequence,
-            report[0],
-            report[1],
-            report[2],
-            report[3],
-            report[4],
-            report[5],
-            report[6],
-            report[7],
-            report[8],
-            report[9],
-            report[10],
-            report[11],
-            report[12],
-            report[13],
-            report[14],
-            report[15],
-            report[16],
-            report[17],
-            report[18],
-            report[19],
-            report[20],
-            report[21],
-            report[22],
-            report[23],
-            report[24],
-            report[25],
-            report[26],
-            report[27],
-            report[28],
-            report[29],
-            report[30],
-            report[31],
-            report[32],
-            report[33],
-            report[34],
-            report[35],
-            report[36],
-            report[37],
-            report[38],
-            report[39],
-          ];
-          sequence++;
-          worksheet.addRow(values);
-        });
-      }
+      data.forEach((report) => {
+        const values = [
+          sequence,
+          report.provincia,
+          report.distrito,
+          report.onde_mora,
+          report.ponto_entrada,
+          report.organizacao,
+          report.data_registo,
+          report.registado_por,
+          report.data_actualizacao,
+          report.actualizado_por,
+          report.nui,
+          report.sexo,
+          report.idade_registo,
+          report.idade_actual,
+          report.faixa_registo,
+          report.faixa_actual,
+          report.data_nascimento,
+          report.agyw_prev,
+          report.com_quem_mora,
+          report.sustenta_casa,
+          report.e_orfa,
+          report.vai_escola,
+          report.tem_deficiencia,
+          report.tipo_deficiencia,
+          report.foi_casada,
+          report.esteve_gravida,
+          report.tem_filhos,
+          report.gravida_amamentar,
+          report.teste_hiv,
+          report.area_servico,
+          report.a_servico,
+          report.sub_servico,
+          report.pacote_servico,
+          report.ponto_entrada_servico,
+          report.localizacao,
+          report.data_servico,
+          report.provedor,
+          report.observacoes,
+          report.servico_status,
+        ];
+        sequence++;
+        worksheet.addRow(values);
+      });
 
       const created = moment().format("YYYYMMDD_hhmmss");
       const buffer = await workbook.xlsx.writeBuffer();
@@ -473,62 +432,62 @@ const DataExtraction = () => {
         cell.font = { bold: true };
       });
 
-      let sequence = 1;
+      // let sequence = 1;
 
-      for (let i = 0; i < lastPageSummary; i++) {
-        const responseData = await getNewlyEnrolledAgywAndServicesSummary(
-          districtsIds,
-          initialDate,
-          finalDate,
-          i,
-          pageSize
-        );
-        responseData.forEach((report) => {
-          const values = [
-            sequence,
-            report[0],
-            report[1],
-            report[2],
-            report[3],
-            report[4],
-            report[5],
-            report[6],
-            report[7],
-            report[8],
-            report[9],
-            report[10],
-            report[11],
-            report[12],
-            report[13],
-            report[14],
-            report[15],
-            report[16],
-            report[17],
-            report[18],
-            report[19],
-            report[20],
-            report[21],
-            report[22],
-            report[23],
-            report[24],
-            report[25],
-            report[26],
-            report[27],
-            report[28],
-            report[29],
-            report[30],
-            report[31],
-            report[32],
-            report[33],
-            report[34],
-            report[35],
-            report[36],
-            report[37],
-          ];
-          sequence++;
-          worksheet.addRow(values);
-        });
-      }
+      // for (let i = 0; i < lastPageSummary; i++) {
+      //   const responseData = await getNewlyEnrolledAgywAndServicesSummary(
+      //     districtsIds,
+      //     initialDate,
+      //     finalDate,
+      //     i,
+      //     pageSize
+      //   );
+      //   responseData.forEach((report) => {
+      //     const values = [
+      //       sequence,
+      //       report[0],
+      //       report[1],
+      //       report[2],
+      //       report[3],
+      //       report[4],
+      //       report[5],
+      //       report[6],
+      //       report[7],
+      //       report[8],
+      //       report[9],
+      //       report[10],
+      //       report[11],
+      //       report[12],
+      //       report[13],
+      //       report[14],
+      //       report[15],
+      //       report[16],
+      //       report[17],
+      //       report[18],
+      //       report[19],
+      //       report[20],
+      //       report[21],
+      //       report[22],
+      //       report[23],
+      //       report[24],
+      //       report[25],
+      //       report[26],
+      //       report[27],
+      //       report[28],
+      //       report[29],
+      //       report[30],
+      //       report[31],
+      //       report[32],
+      //       report[33],
+      //       report[34],
+      //       report[35],
+      //       report[36],
+      //       report[37],
+      //     ];
+      //     sequence++;
+      //     worksheet.addRow(values);
+      //   });
+      // }
 
       const created = moment().format("YYYYMMDD_hhmmss");
       const buffer = await workbook.xlsx.writeBuffer();
@@ -548,6 +507,16 @@ const DataExtraction = () => {
       // Display an error message using your preferred method (e.g., toast.error)
       toast.error("An error occurred during report generation.");
     }
+  };
+
+  const handleChange = (e) => {
+    const fileReader = new FileReader();
+    fileReader.readAsText(e.target.files[0], "UTF-8");
+    fileReader.onload = (e: any) => {
+      const data = JSON.parse(e?.target?.result);
+      console.log("----uploading json----", data);
+      setData(data);
+    };
   };
 
   return (
@@ -652,9 +621,16 @@ const DataExtraction = () => {
                     <Button
                       type="primary"
                       htmlType="submit"
-                      onClick={handleGenerateXLSXReport}
+                      onClick={downloadJsonReport}
                     >
                       Extrair
+                    </Button>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      onClick={generateXlsReport}
+                    >
+                      Exportar XLS
                     </Button>
                   </Form.Item>
                 </Col>
@@ -662,6 +638,27 @@ const DataExtraction = () => {
             </Form>
           </div>
         </Card>
+      </Card>
+      <Card>
+        <strong>import gs-data.json</strong>
+        <hr />
+        <form
+          onSubmit={() => {
+            console.log("submiting");
+          }}
+        >
+          <label>
+            Name:
+            <input
+              type="file"
+              id="input_json"
+              // ref={fileRef}
+              accept=".json,application/json"
+              onChange={handleChange}
+            />
+          </label>
+          <input type="submit" value="Execute Sync" />
+        </form>
       </Card>
       {<LoadingModal modalVisible={dataLoading} />}
     </Fragment>
