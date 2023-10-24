@@ -47,6 +47,7 @@ const DataExtraction = () => {
   const pageSize = 1000;
   const [data, setData] = useState<any>();
   const fileRef = useRef();
+  const [canExport, setCanExport] = useState(false);
 
   const districtsIds = selectedDistricts.map((district) => {
     return district.id;
@@ -59,6 +60,22 @@ const DataExtraction = () => {
       name: "Sumário de Novas RAMJ, Vulnerabilidades e Serviços",
     },
   ];
+
+  function splitArray(array, chunkSize) {
+    const result: any = [];
+    for (let i = 0; i < array?.length; i += chunkSize) {
+      result.push(array?.slice(i, i + chunkSize));
+    }
+    return result;
+  }
+
+  const chunkedArrays = splitArray(data, 500000);
+
+  useEffect(() => {
+    if (canExport) {
+      generateXlsReport();
+    }
+  }, [canExport]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -172,7 +189,7 @@ const DataExtraction = () => {
 
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet(
-        "DLT2.0_NOVAS_RAMJ_ VULNERABILIDADES_E_SERVICOS"
+        "DLT2.0_NOVAS_RAMJ_ VULNERAB_E_SERVICOS"
       );
 
       worksheet.mergeCells("A1:AN1");
@@ -277,61 +294,62 @@ const DataExtraction = () => {
 
       let sequence = 1;
 
-      data.forEach((report) => {
-        const values = [
-          sequence,
-          report.provincia,
-          report.distrito,
-          report.onde_mora,
-          report.ponto_entrada,
-          report.organizacao,
-          report.data_registo,
-          report.registado_por,
-          report.data_actualizacao,
-          report.actualizado_por,
-          report.nui,
-          report.sexo,
-          report.idade_registo,
-          report.idade_actual,
-          report.faixa_registo,
-          report.faixa_actual,
-          report.data_nascimento,
-          report.agyw_prev,
-          report.com_quem_mora,
-          report.sustenta_casa,
-          report.e_orfa,
-          report.vai_escola,
-          report.tem_deficiencia,
-          report.tipo_deficiencia,
-          report.foi_casada,
-          report.esteve_gravida,
-          report.tem_filhos,
-          report.gravida_amamentar,
-          report.teste_hiv,
-          report.area_servico,
-          report.a_servico,
-          report.sub_servico,
-          report.pacote_servico,
-          report.ponto_entrada_servico,
-          report.localizacao,
-          report.data_servico,
-          report.provedor,
-          report.observacoes,
-          report.servico_status,
-        ];
-        sequence++;
-        worksheet.addRow(values);
-      });
+      for (const chunk of chunkedArrays) {
+        console.log("----chunk---", chunk);
+
+        chunk.forEach((report) => {
+          const values = [
+            sequence,
+            report[0],
+            report[1],
+            report[2],
+            report[3],
+            report[4],
+            report[5],
+            report[6],
+            report[7],
+            report[8],
+            report[9],
+            report[10],
+            report[11],
+            report[12],
+            report[13],
+            report[14],
+            report[15],
+            report[16],
+            report[17],
+            report[18],
+            report[19],
+            report[20],
+            report[21],
+            report[22],
+            report[23],
+            report[24],
+            report[25],
+            report[26],
+            report[27],
+            report[28],
+            report[29],
+            report[30],
+            report[31],
+            report[32],
+            report[33],
+            report[34],
+            report[35],
+            report[36],
+            report[37],
+          ];
+          sequence++;
+          worksheet.addRow(values);
+        });
+      }
 
       const created = moment().format("YYYYMMDD_hhmmss");
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
-      saveAs(
-        blob,
-        `DLT2.0_NOVAS_RAMJ_ VULNERABILIDADES_E_SERVICOS_${created}.xlsx`
-      );
+      saveAs(blob, `DLT2.0_NOVAS_RAMJ_VULNERAB_E_SERVICOS_${created}.xlsx`);
 
       setDataLoading(false);
     } catch (error) {
@@ -351,7 +369,7 @@ const DataExtraction = () => {
 
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet(
-        "DLT2.0_SUMARIO_NOVAS_RAMJ_ VULNERABILIDADES_E_SERVICOS"
+        "DLT2.0_SUMARIO_NOVAS_RAMJ_ VULNERAB_E_SERVICOS"
       );
 
       worksheet.mergeCells("A1:AN1");
@@ -628,7 +646,7 @@ const DataExtraction = () => {
                     <Button
                       type="primary"
                       htmlType="submit"
-                      onClick={generateXlsReport}
+                      onClick={() => setCanExport(true)}
                     >
                       Exportar XLS
                     </Button>
