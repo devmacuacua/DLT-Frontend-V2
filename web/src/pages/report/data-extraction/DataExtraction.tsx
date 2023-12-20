@@ -19,11 +19,9 @@ import moment from "moment";
 import dreams from "../../../assets/dreams.png";
 
 import {
-  countNewlyEnrolledAgywAndServices,
   getNewlyEnrolledAgywAndServicesReportGenerated,
   getFileDownloaded,
   geNewlyEnrolledAgywAndServicesSummaryReportGenerated,
-  countBeneficiariesVulnerabilitiesAndServices,
   getBeneficiariesVulnerabilitiesAndServicesSummaryReportGenerated,
   getBeneficiariesVulnerabilitiesAndServicesReportGenerated,
   getExcelDocumentFormated,
@@ -46,7 +44,6 @@ const DataExtraction = () => {
   const [dataLoading, setDataLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [currentPage, setCurrentPage] = useState<number>(0);
-  const [lastPage, setLastPage] = useState<number>(0);
   const [extraOption, setExtraOption] = useState(0);
   const [currentDistrict, setCurrentDistrict] = useState<any>();
   const [nextIndex, setNextIndex] = useState(1);
@@ -142,41 +139,13 @@ const DataExtraction = () => {
     }),
   });
 
-  const getTotalNewlyEnrolledAgywAndServices = async () => {
-    const totalNewlyEnrolledAgywAndServices =
-      await countNewlyEnrolledAgywAndServices(
-        districtsIds,
-        initialDate,
-        finalDate
-      );
-    const lastPage = Math.ceil(totalNewlyEnrolledAgywAndServices[0] / pageSize);
-    setLastPage(lastPage);
-  };
-
-  const getTotalVulnerabilitiesAndServices = async () => {
-    const totalVulnerabilitiesAndServices =
-      await countBeneficiariesVulnerabilitiesAndServices(
-        districtsIds,
-        initialDate,
-        finalDate
-      );
-    const lastPage = Math.ceil(totalVulnerabilitiesAndServices[0] / pageSize);
-    setLastPage(lastPage);
-  };
-
   const onChangeExtraOption = async (option) => {
     setLoadingMessage("Processando os parâmetros da Extração...");
     if (option != extraOption) {
       setDataLoading(true);
       setCurrentPage(0);
       setExtraOption(option);
-      if (option == 1) {
-        getTotalNewlyEnrolledAgywAndServices().then(() =>
-          setDataLoading(false)
-        );
-      } else if (option == 3) {
-        getTotalVulnerabilitiesAndServices().then(() => setDataLoading(false));
-      } else if (option == 2 || option == 4) {
+      if (option == 1 || option == 2 || option == 3 || option == 4) {
         setDataLoading(false);
       } else {
         toast.error("Por favor selecione o tipo de extração");
@@ -192,19 +161,15 @@ const DataExtraction = () => {
   }, [selectedDistricts, initialDate, finalDate, extraOption]);
 
   useEffect(() => {
-    if (currentPage != 0 && lastPage != 0 && currentPage < lastPage) {
-      if (extraOption == 1) {
-        generateExcelNewlyEnrolledAgywAndServicesReport(currentPage); // Iterar
-      } else if (extraOption == 3) {
-        generateExcelBeneficiariesVulnerabilitiesAndServicesReport(currentPage); // Iterar
-      }
-    }
-  }, [currentPage]);
-
-  useEffect(() => {
     if (currentDistrict != undefined) {
-      if (extraOption == 2) {
+      if (extraOption == 1) {
+        generateExcelNewlyEnrolledAgywAndServicesReport(currentDistrict);
+      } else if (extraOption == 2) {
         generateExcelNewlyEnrolledAgywAndServicesSummaryReport(currentDistrict);
+      } else if (extraOption == 3) {
+        generateExcelBeneficiariesVulnerabilitiesAndServicesReport(
+          currentDistrict
+        );
       } else if (extraOption == 4) {
         generateExcelBeneficiariesVulnerabilitiesAndServicesSummaryReport(
           currentDistrict
@@ -213,7 +178,7 @@ const DataExtraction = () => {
     }
   }, [currentDistrict]);
 
-  const handleGenerateXLSXReport = (i) => {
+  const handleGenerateXLSXReport = (currentDistrictIndex) => {
     setLoadingMessage("Extraindo... Por favor aguarde");
     if (
       selectedProvinces.length < 1 ||
@@ -226,13 +191,19 @@ const DataExtraction = () => {
       );
     } else {
       if (extraOption == 1) {
-        generateExcelNewlyEnrolledAgywAndServicesReport(i);
+        generateExcelNewlyEnrolledAgywAndServicesReport(currentDistrictIndex);
       } else if (extraOption == 2) {
-        generateExcelNewlyEnrolledAgywAndServicesSummaryReport(i);
+        generateExcelNewlyEnrolledAgywAndServicesSummaryReport(
+          currentDistrictIndex
+        );
       } else if (extraOption == 3) {
-        generateExcelBeneficiariesVulnerabilitiesAndServicesReport(i);
+        generateExcelBeneficiariesVulnerabilitiesAndServicesReport(
+          currentDistrictIndex
+        );
       } else if (extraOption == 4) {
-        generateExcelBeneficiariesVulnerabilitiesAndServicesSummaryReport(i);
+        generateExcelBeneficiariesVulnerabilitiesAndServicesSummaryReport(
+          currentDistrictIndex
+        );
       } else {
         setDataLoading(false);
         toast.error("Para extrair por favor selecione o tipo de extração");
@@ -240,16 +211,17 @@ const DataExtraction = () => {
     }
   };
 
-  const generateExcelNewlyEnrolledAgywAndServicesReport = async (pageIndex) => {
+  const generateExcelNewlyEnrolledAgywAndServicesReport = async (
+    currentDistrictIndex
+  ) => {
     setDataLoading(true);
     try {
       const response = await getNewlyEnrolledAgywAndServicesReportGenerated(
         selectedProvinces[0].name,
-        districtsIds,
+        districtsIds[currentDistrictIndex],
         initialDate,
         finalDate,
-        pageIndex,
-        pageSize,
+        currentPage,
         username
       );
       await downloadFile(response);
@@ -262,18 +234,17 @@ const DataExtraction = () => {
   };
 
   const generateExcelBeneficiariesVulnerabilitiesAndServicesReport = async (
-    pageIndex
+    currentDistrictIndex
   ) => {
     setDataLoading(true);
     try {
       const response =
         await getBeneficiariesVulnerabilitiesAndServicesReportGenerated(
           selectedProvinces[0].name,
-          districtsIds,
+          districtsIds[currentDistrictIndex],
           initialDate,
           finalDate,
-          pageIndex,
-          pageSize,
+          currentPage,
           username
         );
       await downloadFile(response);
